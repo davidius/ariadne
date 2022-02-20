@@ -36,7 +36,6 @@ pub struct LogAnnotation {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Service {
     pub name: String,
-    pub auth_commands: Vec<String>,
     pub service_run_config: ServiceRunConfig,
 }
 
