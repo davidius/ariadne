@@ -3,10 +3,10 @@ use crate::logs::*;
 use crate::read_from_buffer::*;
 
 use std::io::{Error};
-use std::sync::{Arc};
+use std::sync::{Arc, Mutex};
 use std::process::{Stdio as StdStdio};
 
-use tokio::{self, io::BufReader, process::Command, sync::Mutex};
+use tokio::{self, io::BufReader, process::Command};
 
 pub async fn run_command(
     start_command: &Vec<String>,
@@ -51,29 +51,27 @@ pub async fn run_command(
     let start_command_clone_2 = start_command.clone();
 
     let stdout_task = tokio::spawn(async move {
-        let stdout_logs = log_output_from_reader(
+        log_output_from_reader(
             child_stdout_reader,
-            is_process_complete_clone,
+            Arc::clone(&is_process_complete_clone),
             with_logs,
             &start_command_clone[0],
             log_annotations_for_service_clone,
             continue_on_log_regex_clone,
             LogType::ProcessStdout
-        );
-        stdout_logs.await;
+        ).await;
     });
 
     let stderr_task = tokio::spawn(async move {
-        let stderr_logs = log_output_from_reader(
+        log_output_from_reader(
             child_stderr_reader,
-            is_process_complete_clone_2,
+            Arc::clone(&is_process_complete_clone_2),
             with_logs,
             &start_command_clone_2[0],
             log_annotations_for_service_clone_2,
             continue_on_log_regex_clone_2,
             LogType::ProcessStderr
-        );
-        stderr_logs.await;
+        ).await;
     });
     
     

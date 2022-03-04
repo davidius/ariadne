@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Arg::with_name("service")
                         .short("s")
                         .help("The name of the service to run")
-                        .required(false) // TODO: change this
+                        .required(false)
                         .index(1),
                 ),
         )
@@ -43,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Arg::with_name("recipe")
                     .short("r")
                     .help("The name of the recipe to cook")
-                    .required(false) // TODO: change this
+                    .required(false)
                     .index(1),
             ),
         )
