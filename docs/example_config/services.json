@@ -1,0 +1,22 @@
+{
+  "services": [
+    {
+      "name": "my-node-app",
+      "service_run_config": {
+        "dir": "/Users/username-here/path/to/my-node-app",
+        "pre_commands": ["ls -a"],
+        "start_command": "npm run start"
+      }
+    },
+    {
+      "name": "my-rust-app",
+      "service_run_config": {
+        "dir": "/Users/username-here/path/to/my-rust-app",
+        "start_command": "cargo run"
+      }
+    }
+  ],
+  "recipes": [
+    
+  ]
+}

@@ -43,8 +43,8 @@ pub async fn log_output_from_reader(
                 }
             }
         } else {
-            // TODO: send thread to sleep for a tiny period, while we wait to acquire the lock
-            sleep(Duration::from_millis(10));
+            // send thread to sleep for a tiny period, while we wait to acquire the lock
+            sleep(Duration::from_millis(1));
             break 'outer;
         }
         
