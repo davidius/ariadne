@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+#[derive(std::cmp::PartialEq)]
 pub enum LogType {
     ProcessStdout,
     ProcessStderr,
@@ -62,4 +63,20 @@ pub struct RecipeService {
     pub name: String,
     pub runtype: String,
     pub continue_on_log_regex: Option<String>,
+}
+
+pub struct MutexWrapper {
+    pub is_process_complete_mutex: std::sync::Arc<std::sync::Mutex<bool>>,
+}
+
+pub trait MutexWrapperExt {
+    fn get_is_process_complete(&self) -> bool;
+}
+
+impl MutexWrapperExt for MutexWrapper {
+    fn get_is_process_complete(&self) -> bool {
+        let try_lock_result = self.is_process_complete_mutex.lock().unwrap();
+        let is_process_complete = *try_lock_result;
+        return is_process_complete;
+    }
 }

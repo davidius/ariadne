@@ -17,7 +17,7 @@ pub async fn run_service(
         Some(pre_commands) => {
             for pre_command in pre_commands {
                 let pre_command_vec = get_command_vec(&pre_command);
-                run_command(
+                let command_result = run_command(
                     &pre_command_vec,
                     current_dir.clone(),
                     with_logs,
@@ -31,7 +31,7 @@ pub async fn run_service(
         }
     }
 
-    run_command(
+    let command_result = run_command(
         &start_command_vec,
         current_dir,
         with_logs,

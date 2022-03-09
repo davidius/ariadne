@@ -106,3 +106,12 @@ pub fn log_matched_annotation(log_annotation: LogAnnotation) {
         }
     }
 }
+
+pub fn log_process_exit_on_failure(process_name: &String) {
+    let error_msg = format!(
+        "❗️ The process {} exited with a non-zero exit code",
+        process_name
+    );
+    println!("===========================================================================");
+    println!("{}", Style::new().bold().fg(ERROR_COLOUR).paint(error_msg),);
+}

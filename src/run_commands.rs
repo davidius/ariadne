@@ -6,7 +6,7 @@ use std::io::{Error};
 use std::sync::{Arc, Mutex};
 use std::process::{Stdio as StdStdio};
 
-use tokio::{self, io::BufReader, process::Command};
+use tokio::{self, io::{BufReader}, process::Command};
 
 pub async fn run_command(
     start_command: &Vec<String>,
@@ -51,7 +51,7 @@ pub async fn run_command(
     let start_command_clone_2 = start_command.clone();
 
     let stdout_task = tokio::spawn(async move {
-        log_output_from_reader(
+        let output_result = log_output_from_reader(
             child_stdout_reader,
             Arc::clone(&is_process_complete_clone),
             with_logs,
@@ -60,10 +60,18 @@ pub async fn run_command(
             continue_on_log_regex_clone,
             LogType::ProcessStdout
         ).await;
+        match output_result {
+            Ok(_) => {
+                *is_process_complete_clone.lock().unwrap() = true;
+            }
+            Err(_) => {
+                log_process_exit_on_failure(&start_command_clone[0]);
+            }
+        }
     });
 
     let stderr_task = tokio::spawn(async move {
-        log_output_from_reader(
+        let output_result = log_output_from_reader(
             child_stderr_reader,
             Arc::clone(&is_process_complete_clone_2),
             with_logs,
@@ -72,11 +80,18 @@ pub async fn run_command(
             continue_on_log_regex_clone_2,
             LogType::ProcessStderr
         ).await;
+        match output_result {
+            Ok(_) => {
+                *is_process_complete_clone_2.lock().unwrap() = true;
+            }
+            Err(_) => {
+                log_process_exit_on_failure(&start_command_clone_2[0]);
+            }
+        }
     });
     
+    let _a = stdout_task.await;
+    let _b = stderr_task.await;
     
-    let _a = stdout_task.await.unwrap();
-    let _b = stderr_task.await.unwrap();
-
     Ok::<(), Error>(())
 }
