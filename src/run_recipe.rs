@@ -29,9 +29,6 @@ pub async fn cook_recipe(
                     .contains(&service_name_clone.to_string())
             })
             .collect();
-        log_annotations_for_service
-            .iter()
-            .for_each(|x| println!("{:?}", x));
 
         run_service(
             &service,

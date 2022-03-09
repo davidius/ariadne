@@ -17,7 +17,7 @@ pub fn prepare_env(service: &Service, user_config: &UserConfig) {
             });
         }
         None => {
-            // do nothing
+            log_no_env_variables();
         }
     }
 

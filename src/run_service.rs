@@ -1,3 +1,4 @@
+use crate::logs::log_status_update;
 use crate::command_parse::*;
 use crate::run_commands::*;
 use crate::types::*;
@@ -8,6 +9,7 @@ pub async fn run_service(
     log_annotations_for_service: Vec<LogAnnotation>,
     continue_on_log_regex: Option<String>,
 ) {
+    log_status_update(&"Running service".to_string(), &service.name);
     let start_command_str = &service.service_run_config.start_command;
     let start_command_vec = get_command_vec(&start_command_str);
     let current_dir = service.service_run_config.dir.clone();
