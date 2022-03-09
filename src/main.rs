@@ -25,7 +25,7 @@ use std::fs;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("ariadne")
         .author("Me, davidmichael4d@gmail.com")
-        .version("0.1.0")
+        .version("0.2.0")
         .about("Helps developers automate away all the boring/time-consuming stuff.")
         .subcommand(
             SubCommand::with_name("run")
