@@ -1,5 +1,6 @@
 mod command_parse;
 mod environment;
+mod get_config;
 mod json_parse;
 mod log_annotations;
 mod logs;
@@ -11,6 +12,9 @@ mod services;
 mod types;
 mod unit_tests;
 extern crate clap;
+use crate::get_config::get_log_annotations;
+use crate::get_config::get_user_config;
+use crate::get_config::get_services_config;
 use crate::types::*;
 use clap::{App, Arg, SubCommand};
 use dirs::home_dir;
@@ -26,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("ariadne")
         .author("Me, davidmichael4d@gmail.com")
         .version("0.2.0")
-        .about("Helps developers automate away all the boring/time-consuming stuff.")
+        .about("A command line app to automate the command line")
         .subcommand(
             SubCommand::with_name("run")
                 .about("Runs a single service")
@@ -54,51 +58,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // )
         .get_matches();
 
-    // BEGIN put below into separate function (which retrieves all the things before starting to process) -----------------------------------
-    let user_home_path_buf = home_dir().unwrap();
-    let user_home = user_home_path_buf.to_str().unwrap();
-
-    let service_json_path = format!("{}/.ariadne/services.json", user_home);
-    let user_json_path = format!("{}/.ariadne/user.json", user_home);
-    let log_annotations_json_path = format!("{}/.ariadne/log_annotations.json", user_home);
-
-    let raw_services_json = fs::read_to_string(&service_json_path);
-    let raw_user_json = fs::read_to_string(&user_json_path);
-    let raw_log_annotations_json = fs::read_to_string(&log_annotations_json_path);
-
-    let raw_services_json = match raw_services_json {
-        Ok(raw_json) => raw_json,
-        Err(_) => {
-            panic!("Hmm. Couldn't find a services config file. This should be stored in {}. You can create one with `ariadne setup`.", &service_json_path);
-        }
-    };
-
-    let raw_user_json = match raw_user_json {
-        Ok(raw_json) => raw_json,
-        Err(_) => {
-            panic!("Hmm. Couldn't find a user config file. This should be stored in {}. You can create one with `ariadne setup`.", &user_json_path);
-        }
-    };
-
-    // TODO: should not fail if the file does not exist (not necessary to run)
-    let raw_log_annotations_json = match raw_log_annotations_json {
-        Ok(raw_json) => raw_json,
-        Err(_) => {
-            panic!("Hmm. Couldn't find a log annotations file. This should be stored in {}. You can create one with `ariadne setup`.", &log_annotations_json_path);
-        }
-    };
-
-    let user_config = parse_user_json(raw_user_json);
-    let services_config = parse_services_json(raw_services_json);
-    let log_annotations = parse_log_annotations_json(raw_log_annotations_json);
-
-    // END ------------------------------------------------------------------------------------------
+    let services_config = get_services_config();
+    let user_config = get_user_config();
+    let log_annotations = get_log_annotations();
 
     if let Some(ref matches) = matches.subcommand_matches("run") {
         let service_name = matches.value_of("service").unwrap();
         let service = get_service_by_name(service_name.to_string(), services_config.services);
         let foreground_str = String::from("foreground");
-        prepare_env(&service, &user_config);
+        prepare_env(&service);
 
         let log_annotations_for_service: Vec<LogAnnotation> = log_annotations
             .annotations
@@ -118,7 +86,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cook_recipe(
             recipe,
             services_config.services,
-            user_config,
             &log_annotations.annotations,
         ).await;
     }

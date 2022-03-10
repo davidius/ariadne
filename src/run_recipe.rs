@@ -7,7 +7,6 @@ use std::iter::*;
 pub async fn cook_recipe(
     recipe: Recipe,
     all_services: Vec<Service>,
-    user_config: UserConfig,
     log_annotations: &Vec<LogAnnotation>,
 ) {
     let iterator = recipe.services.into_iter();
@@ -19,7 +18,7 @@ pub async fn cook_recipe(
         let service = get_service_by_name(service_name, all_services_clone);
         let continue_on_log_regex = recipe_service.continue_on_log_regex;
 
-        prepare_env(&service, &user_config);
+        prepare_env(&service);
 
         let log_annotations_for_service: Vec<LogAnnotation> = log_annotations
             .clone()
