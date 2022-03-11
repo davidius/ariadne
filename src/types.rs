@@ -65,12 +65,14 @@ pub struct RecipeService {
     pub continue_on_log_regex: Option<String>,
 }
 
+#[derive(Clone)]
 pub struct MutexWrapper {
     pub is_process_complete_mutex: std::sync::Arc<std::sync::Mutex<bool>>,
 }
 
 pub trait MutexWrapperExt {
     fn get_is_process_complete(&self) -> bool;
+    fn set_is_process_complete(&self, is_process_complete: bool);
 }
 
 impl MutexWrapperExt for MutexWrapper {
@@ -78,5 +80,10 @@ impl MutexWrapperExt for MutexWrapper {
         let try_lock_result = self.is_process_complete_mutex.lock().unwrap();
         let is_process_complete = *try_lock_result;
         return is_process_complete;
+    }
+
+    fn set_is_process_complete(&self, is_process_complete: bool) {
+        let mut is_process_complete_new = self.is_process_complete_mutex.lock().unwrap();
+        *is_process_complete_new = is_process_complete;
     }
 }

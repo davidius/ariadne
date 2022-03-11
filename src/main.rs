@@ -17,13 +17,11 @@ use crate::get_config::get_user_config;
 use crate::get_config::get_services_config;
 use crate::types::*;
 use clap::{App, Arg, SubCommand};
-use dirs::home_dir;
 use environment::*;
 use json_parse::{parse_log_annotations_json, parse_services_json, parse_user_json};
 use run_recipe::*;
 use run_service::*;
 use services::*;
-use std::fs;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -63,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let log_annotations = get_log_annotations();
 
     if let Some(ref matches) = matches.subcommand_matches("run") {
-        let service_name = matches.value_of("service").unwrap();
+        let service_name = matches.value_of("service").expect("No service name provided");
         let service = get_service_by_name(service_name.to_string(), services_config.services);
         let foreground_str = String::from("foreground");
         prepare_env(&service);
@@ -81,7 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             None,
         ).await;
     } else if let Some(ref matches) = matches.subcommand_matches("cook") {
-        let recipe_name = matches.value_of("recipe").unwrap();
+        let recipe_name = matches.value_of("recipe").expect("No recipe name provided");
         let recipe = get_recipe_by_name(recipe_name.to_string(), services_config.recipes);
         cook_recipe(
             recipe,

@@ -6,16 +6,15 @@ use crate::logs::*;
 use crate::types::*;
 use regex::Regex;
 use std::io::Error;
-use std::sync::{Arc, Mutex};
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 
 /// Reads from a buffer and logs the output
 pub async fn log_output_from_reader(
     log_reader: BufReader<impl AsyncRead + std::marker::Unpin>,
-    is_process_complete_mutex: Arc<Mutex<bool>>,
+    is_process_complete_mutex_wrapper: &MutexWrapper,
     with_logs: bool,
     process_name: &String,
-    log_annotations_for_service: Vec<LogAnnotation>,
+    log_annotations_for_service: &Vec<LogAnnotation>,
     continue_on_log_regex: Option<String>,
     log_type: LogType
 ) -> Result<(), Error> {
@@ -24,10 +23,6 @@ pub async fn log_output_from_reader(
     let mut result: Result<(), Error> = Ok(());
 
     loop {    
-        let is_process_complete_mutex_wrapper = MutexWrapper {
-            is_process_complete_mutex: is_process_complete_mutex.clone()
-        };
-
         let is_process_complete = is_process_complete_mutex_wrapper.get_is_process_complete();
 
         if is_process_complete {
@@ -39,7 +34,7 @@ pub async fn log_output_from_reader(
         }
 
         while let Some(log_line) = lines.next_line().await? {
-            if let Ok(mut is_process_complete) = is_process_complete_mutex.try_lock() {
+            if let Ok(mut is_process_complete) = is_process_complete_mutex_wrapper.is_process_complete_mutex.try_lock() {
                 if with_logs {
                     log_output(&log_line, &log_type, process_name);
                 }

@@ -16,8 +16,6 @@ pub async fn run_command(
     continue_on_log_regex: Option<String>,
 ) -> Result<(), Error> {
     let is_process_complete = Arc::new(Mutex::new(false));
-    let is_process_complete_clone = is_process_complete.clone();
-    let is_process_complete_clone_2 = is_process_complete.clone();
 
     let log_annotations_for_service_clone = log_annotations_for_service.clone();
     let log_annotations_for_service_clone_2 = log_annotations_for_service.clone();
@@ -50,19 +48,25 @@ pub async fn run_command(
     let start_command_clone = start_command.clone();
     let start_command_clone_2 = start_command.clone();
 
-    let stdout_task = tokio::spawn(async move {
+    let is_process_complete_mutex_wrapper = MutexWrapper {
+        is_process_complete_mutex: is_process_complete.clone()
+    };
+
+    let is_process_complete_mutex_wrapper_clone = is_process_complete_mutex_wrapper.clone();
+
+    let stdout_task_join_handle = tokio::spawn(async move {
         let output_result = log_output_from_reader(
             child_stdout_reader,
-            Arc::clone(&is_process_complete_clone),
+            &is_process_complete_mutex_wrapper,
             with_logs,
             &start_command_clone[0],
-            log_annotations_for_service_clone,
+            &log_annotations_for_service_clone,
             continue_on_log_regex_clone,
             LogType::ProcessStdout
         ).await;
         match output_result {
             Ok(_) => {
-                *is_process_complete_clone.lock().unwrap() = true;
+                &is_process_complete_mutex_wrapper.set_is_process_complete(true);
             }
             Err(_) => {
                 log_process_exit_on_failure(&start_command_clone[0]);
@@ -70,19 +74,19 @@ pub async fn run_command(
         }
     });
 
-    let stderr_task = tokio::spawn(async move {
+    let stderr_task_join_handle = tokio::spawn(async move {
         let output_result = log_output_from_reader(
             child_stderr_reader,
-            Arc::clone(&is_process_complete_clone_2),
+            &is_process_complete_mutex_wrapper_clone,
             with_logs,
             &start_command_clone_2[0],
-            log_annotations_for_service_clone_2,
+            &log_annotations_for_service_clone_2,
             continue_on_log_regex_clone_2,
             LogType::ProcessStderr
         ).await;
         match output_result {
             Ok(_) => {
-                *is_process_complete_clone_2.lock().unwrap() = true;
+                &is_process_complete_mutex_wrapper_clone.set_is_process_complete(true);
             }
             Err(_) => {
                 log_process_exit_on_failure(&start_command_clone_2[0]);
@@ -90,8 +94,8 @@ pub async fn run_command(
         }
     });
     
-    let _a = stdout_task.await;
-    let _b = stderr_task.await;
+    let _a = stdout_task_join_handle.await;
+    let _b = stderr_task_join_handle.await;
     
     Ok::<(), Error>(())
 }
