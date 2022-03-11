@@ -20,6 +20,16 @@ pub struct ServicesConfig {
     pub recipes: Vec<Recipe>,
 }
 
+pub trait ServicesConfigExt {
+    fn is_empty(&self) -> bool;
+}
+
+impl ServicesConfigExt for ServicesConfig {
+    fn is_empty(&self) -> bool {
+        self.services.is_empty() && self.recipes.is_empty()
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LogAnnotations {
     pub annotations: Vec<LogAnnotation>,

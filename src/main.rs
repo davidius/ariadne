@@ -12,6 +12,7 @@ mod services;
 mod types;
 mod unit_tests;
 extern crate clap;
+use crate::get_config::create_settings_config_file;
 use crate::get_config::get_log_annotations;
 use crate::get_config::get_user_config;
 use crate::get_config::get_services_config;
@@ -49,11 +50,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .index(1),
             ),
         )
-        .subcommand(SubCommand::with_name("list").about("Does some stuff"))
-        // .after_help(
-        //   "Longer explanation to appear after the options when \
-        //              displaying the help information from --help or -h",
-        // )
+        .subcommand(
+            SubCommand::with_name("setup").about("Creates config files needed for ariadne to run")
+        )
         .get_matches();
 
     let services_config = get_services_config();
@@ -86,6 +85,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             services_config.services,
             &log_annotations.annotations,
         ).await;
+    } else if let Some(_) = matches.subcommand_matches("setup") {
+        if services_config.is_empty() {
+            create_settings_config_file();
+        } else {
+            println!("Settings file already exists");
+        }
     }
 
     println!("\nAll done! Hope that worked 😅");

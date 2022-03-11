@@ -4,6 +4,7 @@ use crate::parse_user_json;
 use crate::LogAnnotations;
 use crate::ServicesConfig;
 use crate::UserConfig;
+use std::path::PathBuf;
 
 use dirs::home_dir;
 use std::fs;
@@ -20,12 +21,7 @@ pub fn get_services_config() -> ServicesConfig {
     let service_json_path = format!("{}/.ariadne/services.json", user_home_path);
     let raw_services_json_result = fs::read_to_string(&service_json_path);
 
-    let raw_services_json = match raw_services_json_result {
-        Ok(raw_json) => raw_json,
-        Err(_) => {
-            panic!("Couldn't find a services config file. This should be stored in {}. You can create one with `ariadne setup`.", &service_json_path);
-        }
-    };
+    let raw_services_json = raw_services_json_result.unwrap_or("{}".to_string());
 
     let services_config = parse_services_json(raw_services_json);
 
@@ -55,4 +51,15 @@ pub fn get_log_annotations() -> LogAnnotations {
     let log_annotations = parse_log_annotations_json(raw_log_annotations_json);
 
     return log_annotations;
+}
+
+pub fn create_settings_config_file() {
+    let user_home_path = get_user_home_path();
+
+    let settings_config_file_path = format!("{}/.ariadne/settings.json", user_home_path);
+
+    let settings_config_file_contents = String::from("{}");
+    let settings_config_file_contents_buf = settings_config_file_contents.as_bytes();
+
+    fs::write(settings_config_file_path, settings_config_file_contents_buf).unwrap();
 }
