@@ -1,3 +1,4 @@
+mod chef;
 mod command_parse;
 mod environment;
 mod get_config;
@@ -14,14 +15,13 @@ mod unit_tests;
 extern crate clap;
 use crate::get_config::create_settings_config_file;
 use crate::get_config::get_log_annotations;
-use crate::get_config::get_user_config;
 use crate::get_config::get_services_config;
+use crate::get_config::get_user_config;
 use crate::types::*;
 use clap::{App, Arg, SubCommand};
-use environment::*;
 use json_parse::{parse_log_annotations_json, parse_services_json, parse_user_json};
+use read_from_buffer::*;
 use run_recipe::*;
-use run_service::*;
 use services::*;
 
 #[tokio::main]
@@ -51,40 +51,46 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             ),
         )
         .subcommand(
-            SubCommand::with_name("setup").about("Creates config files needed for ariadne to run")
+            SubCommand::with_name("setup").about("Creates config files needed for ariadne to run"),
         )
         .get_matches();
 
     let services_config = get_services_config();
     let user_config = get_user_config();
     let log_annotations = get_log_annotations();
+    let log_annotations_clone = log_annotations.clone();
 
     if let Some(ref matches) = matches.subcommand_matches("run") {
-        let service_name = matches.value_of("service").expect("No service name provided");
+        let service_name = matches
+            .value_of("service")
+            .expect("No service name provided");
         let service = get_service_by_name(service_name.to_string(), services_config.services);
         let foreground_str = String::from("foreground");
-        prepare_env(&service);
 
-        let log_annotations_for_service: Vec<LogAnnotation> = log_annotations
-            .annotations
-            .into_iter()
-            .filter(|err| err.affected_services.contains(&service_name.to_string()))
-            .collect();
+        let recipe_service = RecipeService {
+            name: service.name.to_string(),
+            runtype: foreground_str.to_string(),
+            continue_on_log_regex: None,
+        };
 
-        run_service(
-            &service,
-            foreground_str,
-            log_annotations_for_service,
-            None,
-        ).await;
+        let recipe_services = vec![recipe_service];
+
+        let recipe = Recipe {
+            name: "default".to_string(),
+            services: recipe_services,
+        };
+
+        cook_recipe(recipe, vec![service], log_annotations_clone.annotations).await;
     } else if let Some(ref matches) = matches.subcommand_matches("cook") {
         let recipe_name = matches.value_of("recipe").expect("No recipe name provided");
         let recipe = get_recipe_by_name(recipe_name.to_string(), services_config.recipes);
         cook_recipe(
             recipe,
             services_config.services,
-            &log_annotations.annotations,
-        ).await;
+            log_annotations.annotations,
+        )
+        .await;
+        println!("Recipe {} has been cooked", recipe_name);
     } else if let Some(_) = matches.subcommand_matches("setup") {
         if services_config.is_empty() {
             create_settings_config_file();

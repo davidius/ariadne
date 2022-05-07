@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tokio::sync::oneshot;
 
 #[derive(std::cmp::PartialEq)]
 pub enum LogType {
@@ -75,7 +76,7 @@ pub struct RecipeService {
     pub continue_on_log_regex: Option<String>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MutexWrapper {
     pub is_process_complete_mutex: std::sync::Arc<std::sync::Mutex<bool>>,
 }
@@ -96,4 +97,52 @@ impl MutexWrapperExt for MutexWrapper {
         let mut is_process_complete_new = self.is_process_complete_mutex.lock().unwrap();
         *is_process_complete_new = is_process_complete;
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct RunningService {
+    pub running_process: std::sync::Arc<tokio::sync::Mutex<tokio::process::Child>>,
+    pub service_name: String,
+    pub is_process_complete: MutexWrapper,
+    pub log_annotations_for_service: Vec<LogAnnotation>,
+    pub continue_on_log_regex: Option<String>,
+    pub status: ServiceStatus,
+    pub is_superseded: bool,
+}
+
+#[derive(Clone, Debug, std::cmp::PartialEq)]
+pub enum ServiceStatus {
+    NotStarted,
+    Running,
+    Complete,
+    Failed,
+}
+
+#[derive(Debug)]
+pub enum RecipeCommand {
+    GetRunningServiceByName {
+        service_name: String,
+        resp: oneshot::Sender<Option<RunningService>>,
+    },
+    GetServiceStatusByRecipeIndex {
+        recipe_index_opt: Option<usize>,
+        resp: oneshot::Sender<ServiceStatus>,
+    },
+    SetServiceStatus {
+        service_name: String,
+        status: ServiceStatus,
+        resp: oneshot::Sender<()>,
+    },
+    GetIsServiceSupersededByRecipeIndex {
+        recipe_index_opt: Option<usize>,
+        resp: oneshot::Sender<bool>,
+    },
+    SetIsServiceSuperseded {
+        service_name: String,
+        is_superseded: bool,
+        resp: oneshot::Sender<()>,
+    },
+    AddRunningService {
+        running_service: RunningService,
+    },
 }

@@ -1,35 +1,39 @@
-use crate::types::*;
 use crate::logs::*;
-use crate::read_from_buffer::*;
+use crate::types::*;
 
-use std::io::{Error};
-use std::sync::{Arc, Mutex};
-use std::process::{Stdio as StdStdio};
+use std::process::Stdio as StdStdio;
+use std::sync::Arc;
 
-use tokio::{self, io::{BufReader}, process::Command};
+use tokio::{self, process::Command, sync::Mutex};
 
+/// Runs the specified start_command and returns a `RunningService` object representing the service it started.
 pub async fn run_command(
     start_command: &Vec<String>,
     current_dir: String,
     with_logs: bool,
     log_annotations_for_service: Vec<LogAnnotation>,
     continue_on_log_regex: Option<String>,
-) -> Result<(), Error> {
-    let is_process_complete = Arc::new(Mutex::new(false));
+    associated_service_name: String,
+) -> RunningService {
+    let is_process_complete = Arc::new(std::sync::Mutex::new(false));
+
+    let is_process_complete_mutex_wrapper = MutexWrapper {
+        is_process_complete_mutex: is_process_complete.clone(),
+    };
 
     let log_annotations_for_service_clone = log_annotations_for_service.clone();
-    let log_annotations_for_service_clone_2 = log_annotations_for_service.clone();
 
     let continue_on_log_regex_clone = continue_on_log_regex.clone();
-    let continue_on_log_regex_clone_2 = continue_on_log_regex.clone();
 
     let start_str = start_command.join(" ");
+
+    let is_superseded = false;
 
     log_running_command(&start_str);
 
     // actually start the service
     let args: Vec<String> = start_command[1..].to_vec();
-    let mut child = Command::new(&start_command[0])
+    let child = Command::new(&start_command[0])
         .current_dir(current_dir.clone())
         .args(args)
         .stdout(StdStdio::piped())
@@ -37,65 +41,13 @@ pub async fn run_command(
         .spawn()
         .expect("error...");
 
-    // TODO: error handling for below (they might not have any output)
-
-    let child_stdout = child.stdout.take().expect("no stdout");
-    let child_stdout_reader = BufReader::new(child_stdout);
-    
-    let child_stderr = child.stderr.take().expect("no stderr");
-    let child_stderr_reader = BufReader::new(child_stderr);
-
-    let start_command_clone = start_command.clone();
-    let start_command_clone_2 = start_command.clone();
-
-    let is_process_complete_mutex_wrapper = MutexWrapper {
-        is_process_complete_mutex: is_process_complete.clone()
+    return RunningService {
+        running_process: Arc::new(Mutex::new(child)),
+        service_name: associated_service_name,
+        is_process_complete: is_process_complete_mutex_wrapper,
+        log_annotations_for_service: log_annotations_for_service_clone,
+        continue_on_log_regex: continue_on_log_regex_clone,
+        status: ServiceStatus::Running,
+        is_superseded,
     };
-
-    let is_process_complete_mutex_wrapper_clone = is_process_complete_mutex_wrapper.clone();
-
-    let stdout_task_join_handle = tokio::spawn(async move {
-        let output_result = log_output_from_reader(
-            child_stdout_reader,
-            &is_process_complete_mutex_wrapper,
-            with_logs,
-            &start_command_clone[0],
-            &log_annotations_for_service_clone,
-            continue_on_log_regex_clone,
-            LogType::ProcessStdout
-        ).await;
-        match output_result {
-            Ok(_) => {
-                &is_process_complete_mutex_wrapper.set_is_process_complete(true);
-            }
-            Err(_) => {
-                log_process_exit_on_failure(&start_command_clone[0]);
-            }
-        }
-    });
-
-    let stderr_task_join_handle = tokio::spawn(async move {
-        let output_result = log_output_from_reader(
-            child_stderr_reader,
-            &is_process_complete_mutex_wrapper_clone,
-            with_logs,
-            &start_command_clone_2[0],
-            &log_annotations_for_service_clone_2,
-            continue_on_log_regex_clone_2,
-            LogType::ProcessStderr
-        ).await;
-        match output_result {
-            Ok(_) => {
-                &is_process_complete_mutex_wrapper_clone.set_is_process_complete(true);
-            }
-            Err(_) => {
-                log_process_exit_on_failure(&start_command_clone_2[0]);
-            }
-        }
-    });
-    
-    let _a = stdout_task_join_handle.await;
-    let _b = stderr_task_join_handle.await;
-    
-    Ok::<(), Error>(())
 }
