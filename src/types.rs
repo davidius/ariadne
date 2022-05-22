@@ -16,18 +16,18 @@ pub struct UserConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct ServicesConfig {
-    pub services: Vec<Service>,
+pub struct TasksConfig {
+    pub tasks: Vec<Task>,
     pub recipes: Vec<Recipe>,
 }
 
-pub trait ServicesConfigExt {
+pub trait TasksConfigExt {
     fn is_empty(&self) -> bool;
 }
 
-impl ServicesConfigExt for ServicesConfig {
+impl TasksConfigExt for TasksConfig {
     fn is_empty(&self) -> bool {
-        self.services.is_empty() && self.recipes.is_empty()
+        self.tasks.is_empty() && self.recipes.is_empty()
     }
 }
 
@@ -41,18 +41,18 @@ pub struct LogAnnotation {
     pub annotation_type: String,
     pub regex: String,
     pub hint: String,
-    pub affected_services: Vec<String>,
+    pub affected_tasks: Vec<String>,
     pub links: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Service {
+pub struct Task {
     pub name: String,
-    pub service_run_config: ServiceRunConfig,
+    pub task_run_config: TaskRunConfig,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct ServiceRunConfig {
+pub struct TaskRunConfig {
     pub dir: String,
     pub pre_commands: Option<Vec<String>>,
     pub start_command: String,
@@ -66,11 +66,11 @@ pub struct ServiceRunConfig {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Recipe {
     pub name: String,
-    pub services: Vec<RecipeService>,
+    pub tasks: Vec<RecipeTask>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct RecipeService {
+pub struct RecipeTask {
     pub name: String,
     pub runtype: String,
     pub continue_on_log_regex: Option<String>,
@@ -100,18 +100,18 @@ impl MutexWrapperExt for MutexWrapper {
 }
 
 #[derive(Clone, Debug)]
-pub struct RunningService {
+pub struct RunningTask {
     pub running_process: std::sync::Arc<tokio::sync::Mutex<tokio::process::Child>>,
-    pub service_name: String,
+    pub task_name: String,
     pub is_process_complete: MutexWrapper,
-    pub log_annotations_for_service: Vec<LogAnnotation>,
+    pub log_annotations_for_task: Vec<LogAnnotation>,
     pub continue_on_log_regex: Option<String>,
-    pub status: ServiceStatus,
+    pub status: TaskStatus,
     pub is_superseded: bool,
 }
 
 #[derive(Clone, Debug, std::cmp::PartialEq)]
-pub enum ServiceStatus {
+pub enum TaskStatus {
     NotStarted,
     Running,
     Complete,
@@ -120,29 +120,29 @@ pub enum ServiceStatus {
 
 #[derive(Debug)]
 pub enum RecipeCommand {
-    GetRunningServiceByName {
-        service_name: String,
-        resp: oneshot::Sender<Option<RunningService>>,
+    GetRunningTaskByName {
+        task_name: String,
+        resp: oneshot::Sender<Option<RunningTask>>,
     },
-    GetServiceStatusByRecipeIndex {
+    GetTaskStatusByRecipeIndex {
         recipe_index_opt: Option<usize>,
-        resp: oneshot::Sender<ServiceStatus>,
+        resp: oneshot::Sender<TaskStatus>,
     },
-    SetServiceStatus {
-        service_name: String,
-        status: ServiceStatus,
+    SetTaskStatus {
+        task_name: String,
+        status: TaskStatus,
         resp: oneshot::Sender<()>,
     },
-    GetIsServiceSupersededByRecipeIndex {
+    GetIsTaskSupersededByRecipeIndex {
         recipe_index_opt: Option<usize>,
         resp: oneshot::Sender<bool>,
     },
-    SetIsServiceSuperseded {
-        service_name: String,
+    SetIsTaskSuperseded {
+        task_name: String,
         is_superseded: bool,
         resp: oneshot::Sender<()>,
     },
-    AddRunningService {
-        running_service: RunningService,
+    AddRunningTask {
+        running_task: RunningTask,
     },
 }

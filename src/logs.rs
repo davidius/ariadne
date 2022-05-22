@@ -3,19 +3,16 @@ use ansi_term::{Colour, Style};
 
 const ERROR_COLOUR: Colour = Colour::Red;
 const GOING_WELL_COLOUR: Colour = Colour::Cyan;
-const SERVICE_NAME_COLOUR: Colour = Colour::Purple;
+const TASK_NAME_COLOUR: Colour = Colour::Purple;
 const INTERESTING_COLOUR: Colour = Colour::Blue;
 const DIVIDING_LINE: &str = "----------------------------------------------------------------";
 
-pub fn log_status_update(stage: &String, service_name: &String) {
+pub fn log_status_update(stage: &String, task_name: &String) {
     println!("");
     println!("{}", DIVIDING_LINE);
     println!(
-        "🧶 Service: {}, Stage: {}",
-        Style::new()
-            .bold()
-            .fg(SERVICE_NAME_COLOUR)
-            .paint(service_name),
+        "🧶 Task: {}, Stage: {}",
+        Style::new().bold().fg(TASK_NAME_COLOUR).paint(task_name),
         Style::new().bold().fg(GOING_WELL_COLOUR).paint(stage)
     );
     println!("{}", DIVIDING_LINE);

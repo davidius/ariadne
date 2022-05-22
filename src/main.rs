@@ -2,27 +2,27 @@ mod chef;
 mod command_parse;
 mod environment;
 mod get_config;
-mod json_parse;
 mod log_annotations;
 mod logs;
 mod read_from_buffer;
 mod run_commands;
 mod run_recipe;
-mod run_service;
-mod services;
+mod run_task;
+mod tasks;
 mod types;
 mod unit_tests;
+mod yaml_parse;
 extern crate clap;
 use crate::get_config::create_settings_config_file;
 use crate::get_config::get_log_annotations;
-use crate::get_config::get_services_config;
+use crate::get_config::get_tasks_config;
 use crate::get_config::get_user_config;
 use crate::types::*;
 use clap::{App, Arg, SubCommand};
-use json_parse::{parse_log_annotations_json, parse_services_json, parse_user_json};
 use read_from_buffer::*;
 use run_recipe::*;
-use services::*;
+use tasks::*;
+use yaml_parse::{parse_log_annotations_yaml, parse_tasks_yaml, parse_user_yaml};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -32,11 +32,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .about("A command line app to automate the command line")
         .subcommand(
             SubCommand::with_name("run")
-                .about("Runs a single service")
+                .about("Runs a single task")
                 .arg(
-                    Arg::with_name("service")
+                    Arg::with_name("task")
                         .short("s")
-                        .help("The name of the service to run")
+                        .help("The name of the task to run")
                         .required(false)
                         .index(1),
                 ),
@@ -55,44 +55,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .get_matches();
 
-    let services_config = get_services_config();
+    let tasks_config = get_tasks_config();
     let user_config = get_user_config();
     let log_annotations = get_log_annotations();
     let log_annotations_clone = log_annotations.clone();
 
     if let Some(ref matches) = matches.subcommand_matches("run") {
-        let service_name = matches
-            .value_of("service")
-            .expect("No service name provided");
-        let service = get_service_by_name(service_name.to_string(), services_config.services);
+        let task_name = matches.value_of("task").expect("No task name provided");
+        let task = get_task_by_name(task_name.to_string(), tasks_config.tasks);
         let foreground_str = String::from("foreground");
 
-        let recipe_service = RecipeService {
-            name: service.name.to_string(),
+        let recipe_task = RecipeTask {
+            name: task.name.to_string(),
             runtype: foreground_str.to_string(),
             continue_on_log_regex: None,
         };
 
-        let recipe_services = vec![recipe_service];
+        let recipe_tasks = vec![recipe_task];
 
         let recipe = Recipe {
             name: "default".to_string(),
-            services: recipe_services,
+            tasks: recipe_tasks,
         };
 
-        cook_recipe(recipe, vec![service], log_annotations_clone.annotations).await;
+        cook_recipe(recipe, vec![task], log_annotations_clone.annotations).await;
     } else if let Some(ref matches) = matches.subcommand_matches("cook") {
         let recipe_name = matches.value_of("recipe").expect("No recipe name provided");
-        let recipe = get_recipe_by_name(recipe_name.to_string(), services_config.recipes);
-        cook_recipe(
-            recipe,
-            services_config.services,
-            log_annotations.annotations,
-        )
-        .await;
+        let recipe = get_recipe_by_name(recipe_name.to_string(), tasks_config.recipes);
+        cook_recipe(recipe, tasks_config.tasks, log_annotations.annotations).await;
         println!("Recipe {} has been cooked", recipe_name);
     } else if let Some(_) = matches.subcommand_matches("setup") {
-        if services_config.is_empty() {
+        if tasks_config.is_empty() {
             create_settings_config_file();
         } else {
             println!("Settings file already exists");

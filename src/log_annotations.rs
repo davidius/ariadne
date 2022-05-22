@@ -3,9 +3,9 @@ use crate::types::*;
 
 pub fn parse_for_matching_log_annotations(
     log_line: &String,
-    log_annotations_for_service: Vec<LogAnnotation>,
+    log_annotations_for_task: Vec<LogAnnotation>,
 ) {
-    let annotations: Vec<LogAnnotation> = log_annotations_for_service
+    let annotations: Vec<LogAnnotation> = log_annotations_for_task
         .into_iter()
         .filter(|annotation| log_line.find(annotation.regex.as_str()).is_some())
         .collect();

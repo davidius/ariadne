@@ -2,44 +2,44 @@ use crate::types::*;
 use tokio::sync::mpsc::Receiver;
 
 pub async fn chef_coordination_task(recipe: Recipe, mut receiver: Receiver<RecipeCommand>) {
-    let mut chef_running_services: Vec<RunningService> = Vec::new();
-    let recipe_services = recipe.services;
+    let mut chef_running_tasks: Vec<RunningTask> = Vec::new();
+    let recipe_tasks = recipe.tasks;
 
     while let Some(cmd) = receiver.recv().await {
         match cmd {
-            RecipeCommand::GetRunningServiceByName { service_name, resp } => {
-                let running_service = chef_running_services
+            RecipeCommand::GetRunningTaskByName { task_name, resp } => {
+                let running_task = chef_running_tasks
                     .iter()
-                    .find(|service| service.service_name == service_name);
-                match running_service {
-                    Some(service) => {
-                        resp.send(Some(service.clone()));
+                    .find(|task| task.task_name == task_name);
+                match running_task {
+                    Some(task) => {
+                        resp.send(Some(task.clone()));
                     }
                     None => {
                         resp.send(None);
                     }
                 }
             }
-            RecipeCommand::SetServiceStatus {
-                service_name,
+            RecipeCommand::SetTaskStatus {
+                task_name,
                 status,
                 resp,
             } => {
-                let running_service = chef_running_services
+                let running_task = chef_running_tasks
                     .iter()
-                    .find(|service: &&RunningService| service.service_name == service_name);
-                match running_service {
-                    Some(service) => {
-                        let service_clone = service.clone();
-                        let updated_service = RunningService {
+                    .find(|task: &&RunningTask| task.task_name == task_name);
+                match running_task {
+                    Some(task) => {
+                        let task_clone = task.clone();
+                        let updated_task = RunningTask {
                             status: status,
-                            ..service_clone
+                            ..task_clone
                         };
-                        let running_service_index = chef_running_services
+                        let running_task_index = chef_running_tasks
                             .iter()
-                            .position(|service| service.service_name == service_name)
+                            .position(|task| task.task_name == task_name)
                             .unwrap();
-                        chef_running_services[running_service_index] = updated_service;
+                        chef_running_tasks[running_task_index] = updated_task;
                         resp.send(());
                     }
                     None => {
@@ -48,43 +48,37 @@ pub async fn chef_coordination_task(recipe: Recipe, mut receiver: Receiver<Recip
                     }
                 }
             }
-            RecipeCommand::GetServiceStatusByRecipeIndex {
+            RecipeCommand::GetTaskStatusByRecipeIndex {
                 recipe_index_opt,
                 resp,
             } => {
                 if let Some(recipe_index) = recipe_index_opt {
-                    let running_service =
-                        chef_running_services
-                            .iter()
-                            .find(|service: &&RunningService| {
-                                service.service_name == recipe_services[recipe_index].name
-                            });
-                    match running_service {
-                        Some(service) => {
-                            resp.send(service.status.clone());
+                    let running_task = chef_running_tasks.iter().find(|task: &&RunningTask| {
+                        task.task_name == recipe_tasks[recipe_index].name
+                    });
+                    match running_task {
+                        Some(task) => {
+                            resp.send(task.status.clone());
                         }
                         None => {
-                            resp.send(ServiceStatus::NotStarted);
+                            resp.send(TaskStatus::NotStarted);
                         }
                     }
                 } else {
-                    resp.send(ServiceStatus::NotStarted);
+                    resp.send(TaskStatus::NotStarted);
                 }
             }
-            RecipeCommand::GetIsServiceSupersededByRecipeIndex {
+            RecipeCommand::GetIsTaskSupersededByRecipeIndex {
                 recipe_index_opt,
                 resp,
             } => {
                 if let Some(recipe_index) = recipe_index_opt {
-                    let running_service =
-                        chef_running_services
-                            .iter()
-                            .find(|service: &&RunningService| {
-                                service.service_name == recipe_services[recipe_index].name
-                            });
-                    match running_service {
-                        Some(service) => {
-                            resp.send(service.is_superseded);
+                    let running_task = chef_running_tasks.iter().find(|task: &&RunningTask| {
+                        task.task_name == recipe_tasks[recipe_index].name
+                    });
+                    match running_task {
+                        Some(task) => {
+                            resp.send(task.is_superseded);
                         }
                         None => {
                             resp.send(false);
@@ -94,26 +88,26 @@ pub async fn chef_coordination_task(recipe: Recipe, mut receiver: Receiver<Recip
                     resp.send(false);
                 }
             }
-            RecipeCommand::SetIsServiceSuperseded {
-                service_name,
+            RecipeCommand::SetIsTaskSuperseded {
+                task_name,
                 is_superseded,
                 resp,
             } => {
-                let running_service = &mut chef_running_services
+                let running_task = &mut chef_running_tasks
                     .iter()
-                    .find(|service: &&RunningService| service.service_name == service_name);
-                match running_service {
-                    Some(service) => {
-                        let service_clone = service.clone();
-                        let updated_service = RunningService {
+                    .find(|task: &&RunningTask| task.task_name == task_name);
+                match running_task {
+                    Some(task) => {
+                        let task_clone = task.clone();
+                        let updated_task = RunningTask {
                             is_superseded: is_superseded,
-                            ..service_clone
+                            ..task_clone
                         };
-                        let running_service_index = chef_running_services
+                        let running_task_index = chef_running_tasks
                             .iter()
-                            .position(|service| service.service_name == service_name)
+                            .position(|task| task.task_name == task_name)
                             .unwrap();
-                        chef_running_services[running_service_index] = updated_service;
+                        chef_running_tasks[running_task_index] = updated_task;
                         resp.send(());
                     }
                     None => {
@@ -121,8 +115,8 @@ pub async fn chef_coordination_task(recipe: Recipe, mut receiver: Receiver<Recip
                     }
                 }
             }
-            RecipeCommand::AddRunningService { running_service } => {
-                chef_running_services.push(running_service);
+            RecipeCommand::AddRunningTask { running_task } => {
+                chef_running_tasks.push(running_task);
             }
         }
     }

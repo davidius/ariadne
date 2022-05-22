@@ -6,18 +6,18 @@ use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 
-pub async fn watch_logs_for_service(
+pub async fn watch_logs_for_task(
     chef_sender: tokio::sync::mpsc::Sender<RecipeCommand>,
-    service_name: &String,
+    task_name: &String,
     with_logs: bool,
-    log_annotations_for_service: Vec<LogAnnotation>,
+    log_annotations_for_task: Vec<LogAnnotation>,
     continue_on_log_regex: Option<String>,
 ) {
     let (resp_tx, resp_rx) = oneshot::channel();
 
     chef_sender
-        .send(RecipeCommand::GetRunningServiceByName {
-            service_name: service_name.clone(),
+        .send(RecipeCommand::GetRunningTaskByName {
+            task_name: task_name.clone(),
             resp: resp_tx,
         })
         .await
@@ -25,11 +25,11 @@ pub async fn watch_logs_for_service(
     let chef_sender_clone = chef_sender.clone();
     let chef_sender_clone_2 = chef_sender.clone();
 
-    let running_service_opt = resp_rx.await.unwrap();
+    let running_task_opt = resp_rx.await.unwrap();
 
-    match running_service_opt {
-        Some(running_service) => {
-            let mut rsp_lock = running_service.running_process.lock().await;
+    match running_task_opt {
+        Some(running_task) => {
+            let mut rsp_lock = running_task.running_process.lock().await;
 
             let child_stdout = (*&mut rsp_lock).stdout.take().expect("no stdout");
             let child_stdout_reader = BufReader::new(child_stdout);
@@ -37,22 +37,22 @@ pub async fn watch_logs_for_service(
             let child_stderr = (*&mut rsp_lock).stderr.take().expect("no stderr");
             let child_stderr_reader = BufReader::new(child_stderr);
 
-            let service_name_clone = service_name.clone();
-            let service_name_clone_2 = service_name.clone();
+            let task_name_clone = task_name.clone();
+            let task_name_clone_2 = task_name.clone();
 
             let continue_on_log_regex_clone = continue_on_log_regex.clone();
             let continue_on_log_regex_clone_2 = continue_on_log_regex.clone();
 
-            let log_annotations_for_service_clone = log_annotations_for_service.clone();
-            let log_annotations_for_service_clone_2 = log_annotations_for_service.clone();
+            let log_annotations_for_task_clone = log_annotations_for_task.clone();
+            let log_annotations_for_task_clone_2 = log_annotations_for_task.clone();
 
             let mut stdout_task_join_handle: JoinHandle<bool> = tokio::spawn(async move {
                 log_output_from_reader(
                     chef_sender.clone(),
                     child_stdout_reader,
                     with_logs,
-                    &service_name_clone,
-                    &log_annotations_for_service_clone,
+                    &task_name_clone,
+                    &log_annotations_for_task_clone,
                     continue_on_log_regex_clone,
                     LogType::ProcessStdout,
                 )
@@ -65,8 +65,8 @@ pub async fn watch_logs_for_service(
                     chef_sender_clone,
                     child_stderr_reader,
                     with_logs,
-                    &service_name_clone_2,
-                    &log_annotations_for_service_clone_2,
+                    &task_name_clone_2,
+                    &log_annotations_for_task_clone_2,
                     continue_on_log_regex_clone_2,
                     LogType::ProcessStderr,
                 )
@@ -77,15 +77,15 @@ pub async fn watch_logs_for_service(
             let join_result =
                 tokio::try_join!(&mut stdout_task_join_handle, &mut stderr_task_join_handle);
 
-            let service_name_clone_3 = service_name.clone();
+            let task_name_clone_3 = task_name.clone();
 
             match join_result {
                 Ok(_) => {
                     let (resp_tx, _) = oneshot::channel();
                     chef_sender_clone_2
-                        .send(RecipeCommand::SetServiceStatus {
-                            service_name: service_name_clone_3.clone(),
-                            status: ServiceStatus::Running,
+                        .send(RecipeCommand::SetTaskStatus {
+                            task_name: task_name_clone_3.clone(),
+                            status: TaskStatus::Running,
                             resp: resp_tx,
                         })
                         .await
@@ -108,8 +108,8 @@ pub async fn log_output_from_reader(
     chef_sender: tokio::sync::mpsc::Sender<RecipeCommand>,
     log_reader: BufReader<impl AsyncRead + std::marker::Unpin>,
     with_logs: bool,
-    service_name: &String,
-    log_annotations_for_service: &Vec<LogAnnotation>,
+    task_name: &String,
+    log_annotations_for_task: &Vec<LogAnnotation>,
     continue_on_log_regex: Option<String>,
     log_type: LogType,
 ) {
@@ -119,10 +119,10 @@ pub async fn log_output_from_reader(
 
     while let Some(log_line) = lines.next_line().await.unwrap() {
         if with_logs {
-            log_output(&log_line, &log_type, service_name);
+            log_output(&log_line, &log_type, task_name);
         }
 
-        parse_for_matching_log_annotations(&log_line, log_annotations_for_service.to_owned());
+        parse_for_matching_log_annotations(&log_line, log_annotations_for_task.to_owned());
 
         if continue_on_log_regex.is_some() {
             let regex_string = format!("{}", continue_on_log_regex.as_ref().unwrap());
@@ -131,14 +131,14 @@ pub async fn log_output_from_reader(
             if re.is_match(&log_line) {
                 log_continue_to_next_process();
                 chef_sender
-                    .send(RecipeCommand::SetIsServiceSuperseded {
-                        service_name: service_name.to_owned(),
+                    .send(RecipeCommand::SetIsTaskSuperseded {
+                        task_name: task_name.to_owned(),
                         is_superseded: true,
                         resp: resp_tx,
                     })
                     .await;
 
-                // TODO: technically we should not break here, since this service may still have log output for an undefined
+                // TODO: technically we should not break here, since this task may still have log output for an undefined
                 // period of time.
                 break;
             }

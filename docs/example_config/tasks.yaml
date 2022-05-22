@@ -1,0 +1,43 @@
+---
+# Each task in the below array is a building block for ariadne, i.e. it can be run individually and as part of a recipe (or pipeline).
+# You can run an individual task with `ariadne run <task_name>`. For instance, to run the first task in the below array, you'd type
+# `ariadne run my-postgres-db`.
+tasks:
+- name: my-postgres-db # a unique identifier for the task
+  task_run_config:
+    dir: "/path/to/my/db" # the directory from which the start_command will be run
+    start_command: docker run # the command used to start the task from the command line
+- name: my-java-back-end
+  task_run_config:
+    dir: "/path/to/my/back/end"
+    start_command: ./gradlew bootRun
+    # Pass arbitrary environment variables to be set before running the task
+    env:
+      JAVA_HOME: "/path/to/java/11/home"
+      ENVIRONMENT: dev
+- name: my-node-app
+  task_run_config:
+    dir: "/path/to/my/front/end"
+    # pre_commands are a list of commands to run immediately before the start_command
+    pre_commands:
+    - nvm use
+    start_command: npm run start
+
+# Use a recipe to compose tasks as part of more complex pipelines.
+# The example below shows how you might create a recipe to run your postgres db followed by your Java back end followed by your
+# node front end application.
+# You can run a recipe with `ariadne cook <recipe_name>`, i.e. `ariadne cook my-end-to-end-app` for the below example.
+recipes:
+- name: my-end-to-end-app
+  tasks:
+  - name: my-postgres-db # Must point to a name specified in the tasks list above
+    runtype: background # Can be either `background` or `foreground`, indicating whether or not you want to see the log output for this task.
+    continue_on_log_regex: All migrations complete. # A string or regular expression to watch for in the logs, indicating that ariadne can now start the next task in the list
+  - name: my-java-back-end
+    runtype: foreground
+    continue_on_log_regex: Server is running on port 8080
+  - name: my-node-app
+    runtype: foreground
+    # In this case, there's no need for a `continue_on_log_regex` value, since there are no more tasks you want to run, 
+    # and you want to continually watch the logs as you work on your code.
+    

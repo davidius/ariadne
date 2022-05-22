@@ -2,11 +2,11 @@ use crate::logs::*;
 use crate::types::*;
 use std::env;
 
-/// Takes a service definition and ensures environment variables are set up for the service to run.
-pub fn prepare_env(service: &Service) {
-    log_status_update(&"Preparing environment".to_string(), &service.name);
+/// Takes a task definition and ensures environment variables are set up for the task to run.
+pub fn prepare_env(task: &Task) {
+    log_status_update(&"Preparing environment".to_string(), &task.name);
 
-    match service.service_run_config.env {
+    match task.task_run_config.env {
         Some(ref env) => {
             env.into_iter().for_each(|(key, value)| {
                 if !value.is_empty() {

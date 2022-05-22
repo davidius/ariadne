@@ -1,0 +1,22 @@
+---
+annotations:
+- regex: org.postgresql.util.PSQLException # A string or regular expression to watch for in the logs. Matching the value will surface the annotation.
+  annotation_type: ERROR # Can be either `INFO` or `ERROR`
+  hint: Hmm, looks like a postgres exception. Maybe you don't have the relevant DB
+    running? # This should be any text that may be helpful to the user in these circumstances.
+  # A list of tasks in which to watch for the `regex` above. These must match the task names in tasks.yaml.
+  affected_tasks:
+  - my-java-back-end
+  # An optional list of resources that may be useful
+  links:
+  - https://google.com
+- regex: 'Listening for transport dt_socket at address: 5005'
+  annotation_type: INFO
+  hint: Hey! Looks like we can connect a debugger!
+  affected_tasks:
+  - my-java-back-end
+- regex: 'Secrets retrieval error: The security token included in the request is invalid'
+  annotation_type: ERROR
+  hint: This error message indicates that you're not logged in to AWS. You will need to log in via the command line.
+  affected_tasks:
+  - my-postgres-db
