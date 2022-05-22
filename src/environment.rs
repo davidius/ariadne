@@ -1,5 +1,5 @@
 use crate::logs::*;
-use crate::types::*;
+use crate::types::types::*;
 use std::env;
 
 /// Takes a task definition and ensures environment variables are set up for the task to run.

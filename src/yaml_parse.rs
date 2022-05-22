@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::types::types::*;
 
 /// Parses the user.yaml file and retrieves its values. Consumes any errors that can happen while parsing, and in
 /// case of any error just returns an empty UserConfig object.

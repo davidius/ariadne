@@ -48,6 +48,7 @@ pub struct LogAnnotation {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Task {
     pub name: String,
+    pub description: Option<String>,
     pub task_run_config: TaskRunConfig,
 }
 
@@ -66,6 +67,7 @@ pub struct TaskRunConfig {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Recipe {
     pub name: String,
+    pub description: Option<String>,
     pub tasks: Vec<RecipeTask>,
 }
 

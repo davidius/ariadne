@@ -1,5 +1,5 @@
 use crate::logs::*;
-use crate::types::*;
+use crate::types::types::*;
 
 pub fn parse_for_matching_log_annotations(
     log_line: &String,

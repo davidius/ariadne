@@ -1,6 +1,6 @@
 use crate::log_annotations::*;
 use crate::logs::*;
-use crate::types::*;
+use crate::types::types::*;
 use regex::Regex;
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 use tokio::sync::oneshot;

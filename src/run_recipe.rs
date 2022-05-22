@@ -2,7 +2,7 @@ use crate::chef::*;
 use crate::environment::*;
 use crate::run_task::*;
 use crate::tasks::*;
-use crate::types::*;
+use crate::types::types::*;
 use crate::watch_logs_for_task;
 use std::iter::*;
 use tokio::sync::mpsc;

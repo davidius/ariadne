@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod unit_tests {
     // use super::*;
-    use crate::types::*;
+    use crate::types::types::*;
     use crate::yaml_parse::*;
 
     #[test]

@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::types::types::*;
 use tokio::sync::mpsc::Receiver;
 
 pub async fn chef_coordination_task(recipe: Recipe, mut receiver: Receiver<RecipeCommand>) {

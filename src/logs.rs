@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::types::types::*;
 use ansi_term::{Colour, Style};
 
 const ERROR_COLOUR: Colour = Colour::Red;
@@ -138,4 +138,65 @@ pub fn log_process_exit_on_failure(process_name: &String) {
     );
     println!("{}", DIVIDING_LINE);
     println!("{}", Style::new().bold().fg(ERROR_COLOUR).paint(error_msg),);
+}
+
+pub fn log_list_of_tasks_and_recipes(tasks: Vec<Task>, recipes: Vec<Recipe>) {
+    println!("");
+    println!("{}", DIVIDING_LINE);
+    println!(
+        "{}",
+        Style::new()
+            .bold()
+            .fg(GOING_WELL_COLOUR)
+            .paint("🧶 List of tasks and recipes:")
+    );
+    println!("");
+    println!("  Tasks:");
+
+    tasks.iter().for_each(|task| {
+        if let Some(description) = &task.description {
+            println!(
+                "{} - {}",
+                Style::new()
+                    .bold()
+                    .fg(TASK_NAME_COLOUR)
+                    .paint(task.clone().name),
+                description
+            );
+        } else {
+            println!(
+                "{}",
+                Style::new()
+                    .bold()
+                    .fg(TASK_NAME_COLOUR)
+                    .paint(task.clone().name),
+            );
+        }
+    });
+    println!("");
+    println!("  Recipes:");
+
+    recipes.iter().for_each(|recipe| {
+        if let Some(description) = &recipe.description {
+            println!(
+                "{} - {}",
+                Style::new()
+                    .bold()
+                    .fg(TASK_NAME_COLOUR)
+                    .paint(recipe.clone().name),
+                description
+            );
+        } else {
+            println!(
+                "{}",
+                Style::new()
+                    .bold()
+                    .fg(TASK_NAME_COLOUR)
+                    .paint(recipe.clone().name),
+            );
+        }
+    });
+    println!("");
+    println!("{}", DIVIDING_LINE);
+    println!("");
 }

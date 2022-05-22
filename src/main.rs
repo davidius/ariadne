@@ -1,7 +1,7 @@
 mod chef;
 mod command_parse;
+mod config;
 mod environment;
-mod get_config;
 mod log_annotations;
 mod logs;
 mod read_from_buffer;
@@ -9,15 +9,20 @@ mod run_commands;
 mod run_recipe;
 mod run_task;
 mod tasks;
-mod types;
-mod unit_tests;
+mod types {
+    pub mod types;
+}
+mod tests {
+    pub mod unit_tests;
+}
 mod yaml_parse;
 extern crate clap;
-use crate::get_config::create_settings_config_file;
-use crate::get_config::get_log_annotations;
-use crate::get_config::get_tasks_config;
-use crate::get_config::get_user_config;
-use crate::types::*;
+use crate::config::create_tasks_config_file;
+use crate::config::get_log_annotations;
+use crate::config::get_tasks_config;
+use crate::config::get_user_config;
+use crate::logs::log_list_of_tasks_and_recipes;
+use crate::types::types::*;
 use clap::{App, Arg, SubCommand};
 use read_from_buffer::*;
 use run_recipe::*;
@@ -50,6 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .index(1),
             ),
         )
+        .subcommand(SubCommand::with_name("ls").about("Lists all tasks and recipes"))
         .subcommand(
             SubCommand::with_name("setup").about("Creates config files needed for ariadne to run"),
         )
@@ -75,6 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let recipe = Recipe {
             name: "default".to_string(),
+            description: None,
             tasks: recipe_tasks,
         };
 
@@ -84,11 +91,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let recipe = get_recipe_by_name(recipe_name.to_string(), tasks_config.recipes);
         cook_recipe(recipe, tasks_config.tasks, log_annotations.annotations).await;
         println!("Recipe {} has been cooked", recipe_name);
+    } else if let Some(_) = matches.subcommand_matches("ls") {
+        log_list_of_tasks_and_recipes(tasks_config.tasks.clone(), tasks_config.recipes.clone());
     } else if let Some(_) = matches.subcommand_matches("setup") {
         if tasks_config.is_empty() {
-            create_settings_config_file();
+            create_tasks_config_file();
         } else {
-            println!("Settings file already exists");
+            println!("You already have ariadne configured. From this point on, you'll have to manually add tasks and recipes to the tasks.yaml file.");
         }
     }
 

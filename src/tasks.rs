@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::types::types::*;
 
 pub fn get_task_by_name(task_name: String, all_tasks: Vec<Task>) -> Task {
     let mut tasks_iterator = all_tasks.into_iter();
