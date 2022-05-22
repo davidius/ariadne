@@ -33,7 +33,7 @@ use yaml_parse::{parse_log_annotations_yaml, parse_tasks_yaml, parse_user_yaml};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("ariadne")
         .author("Me, davidmichael4d@gmail.com")
-        .version("0.4.0")
+        .version("0.5.0")
         .about("A command line app to automate the command line")
         .subcommand(
             SubCommand::with_name("run")
